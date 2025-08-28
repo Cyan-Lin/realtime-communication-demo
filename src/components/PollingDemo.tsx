@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { Message, PerformanceMetrics } from "@/types";
 
@@ -8,6 +8,7 @@ export default function PollingDemo() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [interval, setInterval] = useState(3000); // 3秒
+  const [isBackendDataActive, setIsBackendDataActive] = useState(false);
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     requestCount: 0,
     dataReceived: 0,
@@ -16,15 +17,82 @@ export default function PollingDemo() {
     bandwidthUsage: 0,
   });
 
+  // 使用 ref 來存儲最新的 timestamp
+  const lastTimestampRef = useRef<number>(0);
+
+  // 啟動後端間隔插入資料
+  const startBackendDataGeneration = useCallback(async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:8080/triggerInsertTestData",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.text();
+        console.log("Backend response:", result);
+        setIsBackendDataActive(true);
+        // 設定初始時間戳為當前時間
+        const currentTime = Date.now();
+        lastTimestampRef.current = currentTime;
+      }
+    } catch (error) {
+      console.error("Error starting backend data generation:", error);
+      setMessages((prev) =>
+        [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            content: `後端連線錯誤: ${error}`,
+            timestamp: Date.now(),
+            type: "system" as const,
+          },
+        ].slice(-20)
+      );
+    }
+  }, []);
+
+  // 停止後端測試資料插入
+  const stopBackendDataGeneration = useCallback(async () => {
+    try {
+      const response = await fetch("http://localhost:8080/stopInsertTestData", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.text();
+        console.log("Backend stop response:", result);
+        setIsBackendDataActive(false);
+      }
+    } catch (error) {
+      console.error("Error stopping backend data generation:", error);
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
     const startTime = Date.now();
 
     try {
-      // 模擬 API 呼叫
-      const response = await fetch("/api/polling", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      // 使用 ref 中的最新 timestamp
+      const currentTimestamp = lastTimestampRef.current;
+      console.log("Using timestamp:", currentTimestamp);
+
+      // 使用後端 notificationsAfter API
+      const response = await fetch(
+        `http://localhost:8080/notificationsAfter?timestamp=${currentTimestamp}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       const endTime = Date.now();
       const latency = endTime - startTime;
@@ -32,43 +100,44 @@ export default function PollingDemo() {
       if (response.ok) {
         const data = await response.json();
 
-        if (data.message) {
-          const newMessage: Message = {
-            id: Date.now().toString(),
-            content: data.message,
-            timestamp: Date.now(),
-            type: "system",
-          };
+        // 計算回應大小
+        const responseSize = JSON.stringify(data).length;
+        let messageDataSize = 0;
 
-          setMessages((prev) => [...prev, newMessage].slice(-10)); // 只保留最新10條
+        // 處理後端回傳的通知陣列
+        if (Array.isArray(data) && data.length > 0) {
+          const newMessages: Message[] = data.map((notification: any) => {
+            const messageContent = `[後端] ${notification.message}`;
+            messageDataSize += new TextEncoder().encode(messageContent).length;
 
-          // 計算實際資料大小（只計算訊息內容）
-          const messageSize = new TextEncoder().encode(data.message).length;
-          // 計算完整回應大小（包含所有 JSON 資料）
-          const responseSize = JSON.stringify(data).length;
+            return {
+              id: `${notification.timestamp}-${Math.random()}`,
+              content: messageContent,
+              timestamp: notification.timestamp,
+              type: "system" as const,
+            };
+          });
 
-          // 更新指標
-          setMetrics((prev) => ({
-            requestCount: prev.requestCount + 1,
-            dataReceived: prev.dataReceived + messageSize, // 只計算訊息內容
-            averageLatency:
-              (prev.averageLatency * prev.requestCount + latency) /
-              (prev.requestCount + 1),
-            connectionTime: prev.connectionTime,
-            bandwidthUsage: prev.bandwidthUsage + responseSize, // 計算完整回應
-          }));
-        } else {
-          // 即使沒有新訊息，也要計算頻寬使用（空回應也消耗頻寬）
-          const responseSize = JSON.stringify(data).length;
-          setMetrics((prev) => ({
-            ...prev,
-            requestCount: prev.requestCount + 1,
-            averageLatency:
-              (prev.averageLatency * prev.requestCount + latency) /
-              (prev.requestCount + 1),
-            bandwidthUsage: prev.bandwidthUsage + responseSize,
-          }));
+          setMessages((prev) => [...prev, ...newMessages].slice(-20)); // 保留最新20條
+
+          // 更新最後的時間戳
+          const latestTimestamp = Math.max(
+            ...data.map((n: any) => n.timestamp)
+          );
+          // 更新 ref
+          lastTimestampRef.current = latestTimestamp;
         }
+
+        // 更新指標
+        setMetrics((prev) => ({
+          requestCount: prev.requestCount + 1,
+          dataReceived: prev.dataReceived + messageDataSize,
+          averageLatency:
+            (prev.averageLatency * prev.requestCount + latency) /
+            (prev.requestCount + 1),
+          connectionTime: prev.connectionTime,
+          bandwidthUsage: prev.bandwidthUsage + responseSize,
+        }));
       }
     } catch (error) {
       console.error("Polling error:", error);
@@ -77,37 +146,49 @@ export default function PollingDemo() {
           ...prev,
           {
             id: Date.now().toString(),
-            content: `錯誤: ${error}`,
+            content: `連線錯誤: 無法連接到後端 API (${error})`,
             timestamp: Date.now(),
             type: "system" as const,
           },
-        ].slice(-10)
+        ].slice(-20)
       );
     }
-  }, []);
+  }, []); // 移除 lastTimestamp 依賴
 
   useEffect(() => {
     let intervalId: number | null = null;
 
-    if (isActive) {
-      // 立即執行一次
-      fetchData();
+    const startPolling = async () => {
+      if (isActive) {
+        // 如果後端資料產生還沒啟動，先啟動它
+        if (!isBackendDataActive) {
+          await startBackendDataGeneration();
+        }
 
-      // 設定定期執行
-      intervalId = window.setInterval(fetchData, interval);
+        // 立即執行一次
+        fetchData();
 
-      // 記錄開始時間
-      setMetrics((prev) => ({ ...prev, connectionTime: Date.now() }));
-    }
+        // 設定定期執行
+        intervalId = window.setInterval(fetchData, interval);
+
+        // 記錄開始時間
+        setMetrics((prev) => ({ ...prev, connectionTime: Date.now() }));
+      }
+    };
+
+    startPolling();
 
     return () => {
       if (intervalId) {
         window.clearInterval(intervalId);
       }
     };
-  }, [isActive, interval, fetchData]);
+  }, [isActive]);
 
-  const reset = () => {
+  const reset = async () => {
+    // 停止後端資料產生
+    await stopBackendDataGeneration();
+
     setMessages([]);
     setMetrics({
       requestCount: 0,
@@ -116,6 +197,18 @@ export default function PollingDemo() {
       connectionTime: 0,
       bandwidthUsage: 0,
     });
+    const currentTime = Date.now();
+    lastTimestampRef.current = currentTime;
+    setIsBackendDataActive(false);
+    setIsActive(false);
+  };
+
+  const togglePolling = async () => {
+    if (isActive) {
+      // 停止輪詢時也停止後端資料產生
+      await stopBackendDataGeneration();
+    }
+    setIsActive(!isActive);
   };
 
   const formatBytes = (bytes: number) => {
@@ -144,7 +237,7 @@ export default function PollingDemo() {
             </select>
           </div>
           <button
-            onClick={() => setIsActive(!isActive)}
+            onClick={togglePolling}
             className={`flex items-center space-x-2 px-4 py-2 rounded-md text-white font-medium ${
               isActive
                 ? "bg-red-500 hover:bg-red-600"
@@ -220,7 +313,15 @@ export default function PollingDemo() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">連線狀態:</span>
+              <span className="text-gray-600">後端狀態:</span>
+              <span
+                className={`font-medium ${isBackendDataActive ? "text-green-600" : "text-gray-500"}`}
+              >
+                {isBackendDataActive ? "資料產生中" : "已停止"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">輪詢狀態:</span>
               <span
                 className={`font-medium ${isActive ? "text-green-600" : "text-gray-500"}`}
               >
@@ -237,6 +338,17 @@ export default function PollingDemo() {
         <p className="text-blue-800 text-sm">
           輪詢是最簡單的即時資料獲取方式，客戶端定期向伺服器發送請求檢查是否有新資料。
           優點是實作簡單，缺點是可能產生大量不必要的請求，增加伺服器負載和頻寬使用。
+        </p>
+      </div>
+
+      {/* 說明 */}
+      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-medium text-blue-900 mb-2">後端整合說明</h4>
+        <p className="text-blue-800 text-sm">
+          <br />• 開始時會自動呼叫 triggerInsertTestData 啟動資料產生
+          <br />• 使用 notificationsAfter 輪詢新資料，只獲取指定時間後的通知
+          <br />• 停止/重置時會呼叫 stopInsertTestData 停止資料產生
+          <br />• 確保後端 Docker 容器在 localhost:8080 上運行
         </p>
       </div>
     </div>

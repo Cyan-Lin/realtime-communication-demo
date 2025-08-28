@@ -8,65 +8,114 @@
 
 ### 🔧 核心元件開發
 
-- [x] **PollingDemo 元件** ([`src/components/PollingDemo`](src/components/PollingDemo))
+- [x] **PollingDemo 元件** ([`src/components/PollingDemo.tsx`](src/components/PollingDemo.tsx))
   - [x] 實作定期輪詢邏輯 (setInterval)
   - [x] 顯示請求次數和回應時間
-  - [x] 可調整輪詢間隔設定
+  - [x] 可調整輪詢間隔設定 (1s, 3s, 5s, 10s)
   - [x] 開始/停止控制按鈕
+  - [x] 效能指標追蹤 (請求次數、資料大小、頻寬、延遲)
+  - [x] 訊息列表顯示 (最新 20 條)
+  - [x] 模擬 API 端點 (`/api/polling`)
 
-- [x] **LongPollingDemo 元件** ([`src/components/LongPollingDemo`](src/components/LongPollingDemo))
-  - [x] 實作長輪詢機制
+- [x] **LongPollingDemo 元件** ([`src/components/LongPollingDemo.tsx`](src/components/LongPollingDemo.tsx))
+  - [x] 實作長輪詢機制 (5-30秒超時)
   - [x] 處理連線超時重連
-  - [x] 顯示連線狀態
-  - [x] 錯誤處理和重試邏輯
+  - [x] 顯示連線狀態 (連線中/已連線/錯誤/已停止)
+  - [x] 錯誤處理和重試邏輯 (指數退避算法)
+  - [x] 可調整最大重試次數 (1, 3, 5, 10次)
+  - [x] AbortController 請求取消管理
+  - [x] 模擬 API 端點 (`/api/long-polling`)
 
-- [x] **SSEDemo 元件** ([`src/components/SSEDemo`](src/components/SSEDemo))
+- [x] **SSEDemo 元件** ([`src/components/SSEDemo.tsx`](src/components/SSEDemo.tsx))
   - [x] 使用 EventSource API
   - [x] 處理連線狀態 (connecting, open, closed)
   - [x] 顯示即時訊息流
-  - [x] 連線重建機制
+  - [x] 連線重建機制 (自動重連開關)
+  - [x] 多事件類型處理 (message, system, heartbeat, connection, disconnect)
+  - [x] 心跳機制 (30秒間隔)
+  - [x] 智能訊息過濾 (心跳不顯示)
+  - [x] 效能監控 (接收計數、資料大小、頻寬)
+  - [x] 模擬 API 端點 (`/api/sse`)
 
-- [ ] **WebSocketDemo 元件** ([`src/components/WebSocketDemo`](src/components/WebSocketDemo))
+- [ ] **WebSocketDemo 元件** ([`src/components/WebSocketDemo.tsx`](src/components/WebSocketDemo.tsx))
   - [ ] WebSocket 連線建立和管理
   - [ ] 雙向訊息收發
   - [ ] 聊天室功能實作
   - [ ] 連線狀態指示器
+  - [ ] 使用者名稱設定
+  - [ ] 訊息歷史記錄
+  - [ ] 模擬 API 端點 (`/api/websocket` 或後端 WebSocket 伺服器)
 
-- [ ] **ComparisonChart 元件** ([`src/components/ComparisonChart`](src/components/ComparisonChart))
+- [ ] **ComparisonChart 元件** ([`src/components/ComparisonChart.tsx`](src/components/ComparisonChart.tsx))
   - [ ] 效能數據收集和顯示
   - [ ] 即時圖表更新 (使用 Chart.js 或 Recharts)
   - [ ] 延遲、頻寬使用量比較
   - [ ] 匯出比較結果功能
+  - [ ] 資料視覺化圖表
+  - [ ] 技術比較摘要表格
 
 ### 📊 資料管理
 
-- [ ] **自定義 Hooks**
-  - [x] `usePolling` - 輪詢邏輯封裝 (已整合在元件中)
-  - [x] `useLongPolling` - 長輪詢邏輯 (已整合在元件中)
-  - [x] `useSSE` - SSE 連線管理 (已整合在元件中)
+- [x] **自定義 Hooks** (已整合在各元件中)
+  - [x] `usePolling` - 輪詢邏輯封裝 (已整合在 PollingDemo 元件中)
+  - [x] `useLongPolling` - 長輪詢邏輯 (已整合在 LongPollingDemo 元件中)
+  - [x] `useSSE` - SSE 連線管理 (已整合在 SSEDemo 元件中)
   - [ ] `useWebSocket` - WebSocket 連線管理
-  - [x] `usePerformanceMetrics` - 效能數據追蹤 (已整合在元件中)
+  - [x] `usePerformanceMetrics` - 效能數據追蹤 (已整合在各元件中)
+
+- [x] **API 端點開發**
+  - [x] `/api/polling` - 基本輪詢端點 (70% 機率返回新訊息)
+  - [x] `/api/long-polling` - 長輪詢端點 (5-30秒超時，30% 機率提前返回)
+  - [x] `/api/sse` - SSE 串流端點 (多事件類型，心跳機制)
+  - [ ] `/api/websocket` - WebSocket 端點 (或後端 WebSocket 伺服器)
 
 ### 🎨 UI/UX 改善
 
 - [x] **響應式設計優化**
   - [x] 手機版面配置調整 (已使用 Tailwind CSS 響應式類別)
-  - [x] 平板電腦適配
+  - [x] 平板電腦適配 (grid 自適應布局)
+  - [x] 桌面版雙欄布局 (訊息 | 效能指標)
   - [ ] 深色模式支援
+  - [x] 卡片式佈局設計
 
 - [x] **互動體驗**
-  - [x] 載入動畫效果
-  - [x] 錯誤狀態提示
+  - [x] 載入動畫效果 (旋轉、脈衝動畫)
+  - [x] 錯誤狀態提示 (紅色指示器)
   - [x] 成功/失敗視覺回饋
-  - [x] 即時狀態指示燈
+  - [x] 即時狀態指示燈 (WiFi 圖示、顏色變化)
+  - [x] 滑入動畫效果 (slide-up)
+  - [x] 導航選單設計 (技術選擇按鈕)
+
+- [x] **視覺設計改善**
+  - [x] 統一配色方案 (藍色系 vs 紫色系)
+  - [x] 圖示化界面 (Lucide React 圖示)
+  - [x] 漸變背景效果
+  - [x] 陰影和圓角設計
+  - [x] 字體大小和間距優化
 
 ### 🔧 工具功能
 
-- [ ] **設定面板**
-  - [ ] 伺服器端點配置
-  - [ ] 輪詢間隔調整
-  - [ ] 重連次數設定
+- [x] **控制面板功能**
+  - [x] 輪詢間隔調整 (1s, 3s, 5s, 10s)
+  - [x] 重連次數設定 (1, 3, 5, 10次)
+  - [x] 自動重連開關 (SSE)
+  - [x] 開始/停止控制按鈕
+  - [ ] 伺服器端點配置 (目前寫死在程式碼中)
   - [ ] 偵錯模式開關
+
+- [x] **效能監控工具**
+  - [x] 即時效能指標顯示
+  - [x] 請求次數統計
+  - [x] 資料大小計算 (實際內容 vs 總頻寬)
+  - [x] 平均延遲測量
+  - [x] 連線狀態追蹤
+  - [x] 記憶體管理 (訊息列表限制)
+
+- [x] **使用者體驗工具**
+  - [x] 視覺化狀態指示器
+  - [x] 即時資料更新
+  - [x] 錯誤提示和重試進度
+  - [x] 響應式界面設計
 
 ## 🖥️ 後端 (Spring Boot) TODO
 
@@ -196,31 +245,38 @@
 
 ## 📅 優先順序建議
 
-### Phase 1 (核心功能)
+### 📅 優先順序建議
 
-1. 基本元件實作 (PollingDemo, LongPollingDemo, SSEDemo, WebSocketDemo)
-2. 後端 API 端點開發
-3. 基本的效能比較功能
+### Phase 1 (核心功能) - ✅ 75% 完成
 
-### Phase 2 (完善功能)
+1. ✅ 基本元件實作 (PollingDemo, LongPollingDemo, SSEDemo)
+2. ✅ 後端 API 端點開發
+3. ✅ 基本的效能比較功能
+4. ⏳ WebSocketDemo 元件開發 (進行中)
 
-1. ComparisonChart 實作
-2. 自定義 Hooks 開發
-3. 錯誤處理和使用者體驗優化
+### Phase 2 (完善功能) - 🚧 進行中
 
-### Phase 3 (部署和優化)
+1. ⏳ ComparisonChart 實作 (需要圖表庫)
+2. ✅ 自定義 Hooks 開發 (已整合在元件中)
+3. ✅ 錯誤處理和使用者體驗優化
+4. ⏳ 深色模式支援
 
-1. 容器化和部署設定
-2. 效能優化和監控
-3. 文件完善和測試撰寫
+### Phase 3 (部署和優化) - 📋 待開始
 
-### Phase 4 (進階功能)
+1. ⏳ 容器化和部署設定
+2. ⏳ 效能優化和監控
+3. ⏳ 文件完善和測試撰寫
+4. ⏳ 生產環境建置優化
 
-1. 安全性加強
-2. PWA 功能
-3. 多語言和進階分析功能
+### Phase 4 (進階功能) - 📋 未來計劃
+
+1. ⏳ 安全性加強
+2. ⏳ PWA 功能
+3. ⏳ 多語言和進階分析功能
 
 ---
 
 **預估完成時間**: 4-6 週 (視個人開發時間而定)
 **建議先完成**: Phase 1 → Phase 2 → Phase 3 → Phase 4
+**目前進度**: Phase 1 已完成 75%，正在進行 WebSocketDemo 開發
+**最後更新**: 2025年8月28日
