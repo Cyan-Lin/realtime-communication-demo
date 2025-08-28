@@ -8,23 +8,23 @@
 
 ### 🔧 核心元件開發
 
-- [ ] **PollingDemo 元件** ([`src/components/PollingDemo`](src/components/PollingDemo))
-  - [ ] 實作定期輪詢邏輯 (setInterval)
-  - [ ] 顯示請求次數和回應時間
-  - [ ] 可調整輪詢間隔設定
-  - [ ] 開始/停止控制按鈕
+- [x] **PollingDemo 元件** ([`src/components/PollingDemo`](src/components/PollingDemo))
+  - [x] 實作定期輪詢邏輯 (setInterval)
+  - [x] 顯示請求次數和回應時間
+  - [x] 可調整輪詢間隔設定
+  - [x] 開始/停止控制按鈕
 
-- [ ] **LongPollingDemo 元件** ([`src/components/LongPollingDemo`](src/components/LongPollingDemo))
-  - [ ] 實作長輪詢機制
-  - [ ] 處理連線超時重連
-  - [ ] 顯示連線狀態
-  - [ ] 錯誤處理和重試邏輯
+- [x] **LongPollingDemo 元件** ([`src/components/LongPollingDemo`](src/components/LongPollingDemo))
+  - [x] 實作長輪詢機制
+  - [x] 處理連線超時重連
+  - [x] 顯示連線狀態
+  - [x] 錯誤處理和重試邏輯
 
-- [ ] **SSEDemo 元件** ([`src/components/SSEDemo`](src/components/SSEDemo))
-  - [ ] 使用 EventSource API
-  - [ ] 處理連線狀態 (connecting, open, closed)
-  - [ ] 顯示即時訊息流
-  - [ ] 連線重建機制
+- [x] **SSEDemo 元件** ([`src/components/SSEDemo`](src/components/SSEDemo))
+  - [x] 使用 EventSource API
+  - [x] 處理連線狀態 (connecting, open, closed)
+  - [x] 顯示即時訊息流
+  - [x] 連線重建機制
 
 - [ ] **WebSocketDemo 元件** ([`src/components/WebSocketDemo`](src/components/WebSocketDemo))
   - [ ] WebSocket 連線建立和管理
@@ -41,24 +41,24 @@
 ### 📊 資料管理
 
 - [ ] **自定義 Hooks**
-  - [ ] `usePolling` - 輪詢邏輯封裝
-  - [ ] `useLongPolling` - 長輪詢邏輯
-  - [ ] `useSSE` - SSE 連線管理
+  - [x] `usePolling` - 輪詢邏輯封裝 (已整合在元件中)
+  - [x] `useLongPolling` - 長輪詢邏輯 (已整合在元件中)
+  - [x] `useSSE` - SSE 連線管理 (已整合在元件中)
   - [ ] `useWebSocket` - WebSocket 連線管理
-  - [ ] `usePerformanceMetrics` - 效能數據追蹤
+  - [x] `usePerformanceMetrics` - 效能數據追蹤 (已整合在元件中)
 
 ### 🎨 UI/UX 改善
 
-- [ ] **響應式設計優化**
-  - [ ] 手機版面配置調整
-  - [ ] 平板電腦適配
+- [x] **響應式設計優化**
+  - [x] 手機版面配置調整 (已使用 Tailwind CSS 響應式類別)
+  - [x] 平板電腦適配
   - [ ] 深色模式支援
 
-- [ ] **互動體驗**
-  - [ ] 載入動畫效果
-  - [ ] 錯誤狀態提示
-  - [ ] 成功/失敗視覺回饋
-  - [ ] 即時狀態指示燈
+- [x] **互動體驗**
+  - [x] 載入動畫效果
+  - [x] 錯誤狀態提示
+  - [x] 成功/失敗視覺回饋
+  - [x] 即時狀態指示燈
 
 ### 🔧 工具功能
 
@@ -72,21 +72,21 @@
 
 ### 🛠️ API 端點開發
 
-- [ ] **Polling API**
-  - [ ] `GET /api/polling/data` - 基本資料端點
-  - [ ] 模擬資料變化
-  - [ ] 請求記錄和統計
+- [x] **Polling API**
+  - [x] `GET /api/polling/data` - 基本資料端點
+  - [x] 模擬資料變化
+  - [x] 請求記錄和統計
 
-- [ ] **Long Polling API**
-  - [ ] `GET /api/long-polling/data` - 長輪詢端點
-  - [ ] 實作 DeferredResult 或 ResponseBodyEmitter
-  - [ ] 超時處理機制
+- [x] **Long Polling API**
+  - [x] `GET /api/long-polling/data` - 長輪詢端點
+  - [x] 實作 DeferredResult 或 ResponseBodyEmitter
+  - [x] 超時處理機制
 
-- [ ] **SSE API**
-  - [ ] `GET /api/sse/stream` - SSE 資料串流
-  - [ ] 使用 SseEmitter
-  - [ ] 多客戶端連線管理
-  - [ ] 心跳機制
+- [x] **SSE API**
+  - [x] `GET /api/sse/stream` - SSE 資料串流
+  - [x] 使用 SseEmitter
+  - [x] 多客戶端連線管理
+  - [x] 心跳機制
 
 - [ ] **WebSocket 端點**
   - [ ] WebSocket 配置設定

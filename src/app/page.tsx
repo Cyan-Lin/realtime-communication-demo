@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import PollingDemo from "@/components/PollingDemo";
-// import LongPollingDemo from "@/components/LongPollingDemo";
-// import SSEDemo from "@/components/SSEDemo";
+import LongPollingDemo from "@/components/LongPollingDemo";
+import SSEDemo from "@/components/SSEDemo";
 // import WebSocketDemo from "@/components/WebSocketDemo";
 // import ComparisonChart from "@/components/ComparisonChart";
 
@@ -36,10 +36,10 @@ export default function Home() {
     switch (activeDemo) {
       case "polling":
         return <PollingDemo />;
-      // case "longPolling":
-      //   return <LongPollingDemo />;
-      // case "sse":
-      //   return <SSEDemo />;
+      case "longPolling":
+        return <LongPollingDemo />;
+      case "sse":
+        return <SSEDemo />;
       // case "websocket":
       //   return <WebSocketDemo />;
       // case "comparison":
