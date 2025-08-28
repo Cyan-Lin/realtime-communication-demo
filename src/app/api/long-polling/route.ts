@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+// 強制動態渲染
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // 模擬訊息資料
 const dummyMessages = [
   "長輪詢訊息：系統啟動完成",

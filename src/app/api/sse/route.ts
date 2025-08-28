@@ -1,5 +1,9 @@
 import { NextRequest } from "next/server";
 
+// 強制動態渲染，避免建置時預渲染
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // 模擬 SSE 訊息資料
 const sseMessages = [
   "SSE 訊息：系統啟動完成",
