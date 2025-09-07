@@ -2,15 +2,21 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  Play,
-  Pause,
-  RotateCcw,
   Wifi,
   WifiOff,
   Radio,
   AlertCircle,
+  Pause,
+  Play,
+  RotateCcw,
 } from "lucide-react";
 import { Message, PerformanceMetrics } from "@/types";
+import { useBackendDataGeneration } from "@/hooks/useBackendDataGeneration";
+import { createErrorMessage, addMessageWithLimit } from "@/utils/messageUtils";
+import MessageList from "@/components/shared/MessageList";
+import PerformanceMetricsPanel from "@/components/shared/PerformanceMetricsPanel";
+import DemoControls from "@/components/shared/DemoControls";
+import InfoSection from "@/components/shared/InfoSection";
 
 export default function SSEDemo() {
   const [messages, setMessages] = useState<Message[]>([]);

@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, RotateCcw, Wifi, WifiOff } from "lucide-react";
+import { Wifi, WifiOff } from "lucide-react";
 import { Message, PerformanceMetrics } from "@/types";
+import { useBackendDataGeneration } from "@/hooks/useBackendDataGeneration";
+import { createErrorMessage, addMessageWithLimit } from "@/utils/messageUtils";
+import MessageList from "@/components/shared/MessageList";
+import PerformanceMetricsPanel from "@/components/shared/PerformanceMetricsPanel";
+import DemoControls from "@/components/shared/DemoControls";
+import InfoSection from "@/components/shared/InfoSection";
 
 export default function LongPollingDemo() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -19,6 +25,13 @@ export default function LongPollingDemo() {
     connectionTime: 0,
     bandwidthUsage: 0,
   });
+
+  // 使用共用的後端資料產生 hook
+  const {
+    isBackendDataActive,
+    startBackendDataGeneration,
+    stopBackendDataGeneration,
+  } = useBackendDataGeneration();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -50,7 +63,7 @@ export default function LongPollingDemo() {
     try {
       setConnectionStatus("connecting");
 
-      const response = await fetch("/api/long-polling", {
+      const response = await fetch("http://localhost:8080/longPolling", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         signal: abortControllerRef.current.signal,
@@ -69,17 +82,18 @@ export default function LongPollingDemo() {
         setConnectionStatus("connected");
         setRetryCount(0); // 重置重試計數
 
-        const data = await response.json();
+        const data: { message: string; timestamp: number } =
+          await response.json();
 
-        if (data.message) {
+        if (data && data.message) {
           const newMessage: Message = {
-            id: Date.now().toString(),
+            id: `${Date.now()}-${Math.random()}`,
             content: data.message,
-            timestamp: Date.now(),
+            timestamp: data.timestamp,
             type: "system",
           };
 
-          setMessages((prev) => [...prev, newMessage].slice(-10));
+          setMessages((prev) => addMessageWithLimit(prev, newMessage, 10));
 
           // 計算資料大小
           const messageSize = new TextEncoder().encode(data.message).length;
@@ -109,6 +123,27 @@ export default function LongPollingDemo() {
         }
 
         // 使用 setTimeout 避免同步遞迴，並再次檢查狀態
+        setTimeout(() => {
+          if (isActiveRef.current) {
+            console.log("Starting next long poll cycle");
+            longPoll();
+          } else {
+            console.log("Stopping long poll - component inactive");
+          }
+        }, 100);
+      } else if (response.status === 503) {
+        // 503 表示超時，這是正常情況，繼續下一次輪詢
+        setConnectionStatus("connected");
+        setRetryCount(0);
+
+        setMetrics((prev) => ({
+          ...prev,
+          requestCount: prev.requestCount + 1,
+          averageLatency:
+            (prev.averageLatency * prev.requestCount + latency) /
+            (prev.requestCount + 1),
+        }));
+
         setTimeout(() => {
           if (isActiveRef.current) {
             console.log("Starting next long poll cycle");
@@ -149,14 +184,8 @@ export default function LongPollingDemo() {
         errorMsg = `連線錯誤: ${error.message}`;
       }
 
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: errorMsg,
-        timestamp: Date.now(),
-        type: "system",
-      };
-
-      setMessages((prev) => [...prev, errorMessage].slice(-10));
+      const errorMessage: Message = createErrorMessage(errorMsg);
+      setMessages((prev) => addMessageWithLimit(prev, errorMessage, 10));
 
       // 重試邏輯
       if (
@@ -187,21 +216,29 @@ export default function LongPollingDemo() {
   };
 
   useEffect(() => {
-    if (isActive) {
-      setMetrics((prev) => ({ ...prev, connectionTime: Date.now() }));
-      setRetryCount(0);
-      longPoll();
-    } else {
-      // 停止連線
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+    const startLongPolling = async () => {
+      if (isActive) {
+        // 如果後端資料產生還沒啟動，先啟動它
+        if (!isBackendDataActive) {
+          startBackendDataGeneration();
+        }
+
+        setMetrics((prev) => ({ ...prev, connectionTime: Date.now() }));
+        setRetryCount(0);
+        longPoll();
+      } else {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        if (reconnectTimeoutRef.current) {
+          window.clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        setConnectionStatus("disconnected");
       }
-      if (reconnectTimeoutRef.current) {
-        window.clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      setConnectionStatus("disconnected");
-    }
+    };
+
+    startLongPolling();
 
     return () => {
       if (abortControllerRef.current) {
@@ -213,7 +250,10 @@ export default function LongPollingDemo() {
     };
   }, [isActive]); // 只依賴 isActive
 
-  const reset = () => {
+  const reset = async () => {
+    // 停止後端資料產生
+    await stopBackendDataGeneration();
+
     // 首先停止所有活動
     setIsActive(false);
 
@@ -239,12 +279,13 @@ export default function LongPollingDemo() {
       connectionTime: 0,
       bandwidthUsage: 0,
     });
-
-    console.log("Long polling reset completed");
   };
 
-  const formatBytes = (bytes: number) => {
-    return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+  const togglePolling = () => {
+    if (isActive) {
+      stopBackendDataGeneration();
+    }
+    setIsActive((prev) => !prev);
   };
 
   const getStatusColor = () => {
@@ -287,11 +328,12 @@ export default function LongPollingDemo() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
-          長輪詢 (Long Polling) 示範
-        </h2>
-        <div className="flex items-center space-x-3">
+      <DemoControls
+        title="長輪詢 (Long Polling) 示範"
+        isActive={isActive}
+        onToggle={togglePolling}
+        onReset={reset}
+        additionalControls={
           <div className="flex items-center space-x-2">
             <label className="text-sm text-gray-600">最大重試:</label>
             <select
@@ -306,93 +348,20 @@ export default function LongPollingDemo() {
               <option value={10}>10次</option>
             </select>
           </div>
-          <button
-            onClick={() => {
-              const newActiveState = !isActive;
-              setIsActive(newActiveState);
-
-              if (!newActiveState) {
-                // 立即取消進行中的請求
-                if (abortControllerRef.current) {
-                  abortControllerRef.current.abort();
-                }
-                console.log("Long polling stopped by user");
-              }
-            }}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-white font-medium ${
-              isActive
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-green-500 hover:bg-green-600"
-            }`}
-          >
-            {isActive ? <Pause size={16} /> : <Play size={16} />}
-            <span>{isActive ? "停止" : "開始"}</span>
-          </button>
-          <button
-            onClick={reset}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md font-medium"
-          >
-            <RotateCcw size={16} />
-            <span>重置</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 訊息顯示 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">即時訊息</h3>
-          <div className="bg-gray-50 rounded-lg p-4 h-64 overflow-y-auto">
-            {messages.length === 0 ? (
-              <div className="text-gray-500 text-center py-8">
-                點擊開始按鈕建立長輪詢連線
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className="bg-white p-3 rounded-lg shadow-sm animate-slide-up"
-                  >
-                    <div className="text-sm text-gray-900">
-                      {message.content}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 效能指標 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">效能指標</h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">請求次數:</span>
-              <span className="font-medium">{metrics.requestCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">訊息資料:</span>
-              <span className="font-medium">
-                {formatBytes(metrics.dataReceived)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">平均延遲:</span>
-              <span className="font-medium">
-                {metrics.averageLatency.toFixed(0)}ms
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">總頻寬:</span>
-              <span className="font-medium">
-                {formatBytes(metrics.bandwidthUsage)}
-              </span>
-            </div>
+        <MessageList 
+          messages={messages} 
+          emptyMessage="點擊開始按鈕建立長輪詢連線"
+          emptySubMessage="請確認後端服務已在 http://localhost:8080 啟動"
+        />
+        
+        <PerformanceMetricsPanel 
+          metrics={metrics}
+          isBackendDataActive={isBackendDataActive}
+          additionalMetrics={
             <div className="flex justify-between items-center">
               <span className="text-gray-600">連線狀態:</span>
               <div className="flex items-center space-x-2">
@@ -402,18 +371,32 @@ export default function LongPollingDemo() {
                 </span>
               </div>
             </div>
-          </div>
-        </div>
+          }
+        />
       </div>
 
-      {/* 說明 */}
-      <div className="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <h4 className="font-medium text-purple-900 mb-2">技術說明</h4>
-        <p className="text-purple-800 text-sm">
-          長輪詢是輪詢的改進版本，客戶端發送請求後，伺服器會保持連線開啟直到有新資料或超時。
-          相比普通輪詢，減少了無效請求，但伺服器需要維護更多連線。支援自動重連和錯誤處理。
+      <InfoSection 
+        title="技術說明" 
+        bgColor="bg-purple-50" 
+        borderColor="border-purple-200" 
+        textColor="text-purple-800"
+      >
+        <p>
+          長輪詢連接到後端 Spring Boot 服務
+          (http://localhost:8080/longPolling)。
+          伺服器會保持連線開啟直到有新通知或30秒超時(503狀態碼)。
+          支援自動重連和錯誤處理。請確認後端服務已啟動並可使用測試資料API產生通知。
         </p>
-      </div>
+      </InfoSection>
+
+      <InfoSection title="後端整合說明">
+        <p>
+          <br />• 開始時會自動呼叫 triggerInsertTestData 啟動資料產生
+          <br />• 使用 longPolling 持續監聽新資料，伺服器會保持連線直到有新通知
+          <br />• 停止/重置時會呼叫 stopInsertTestData 停止資料產生
+          <br />• 確保後端 Docker 容器在 localhost:8080 上運行
+        </p>
+      </InfoSection>
     </div>
   );
 }

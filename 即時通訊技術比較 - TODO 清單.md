@@ -2,7 +2,7 @@
 
 ## 🎯 專案概覽
 
-這是一個比較四種即時通訊技術（Polling、Long Polling、SSE、WebSocket）的教學示範專案，使用 Next.js 前端搭配 Spring Boot 後端。
+這是一個比較五種即時通訊技術（Polling、Long Polling、SSE、WebSocket、Reactive Long Polling）的教學示範專案，使用 Next.js 前端搭配 Spring Boot 後端。
 
 ## 📋 前端 (Next.js) TODO
 
@@ -25,6 +25,16 @@
   - [x] 可調整最大重試次數 (1, 3, 5, 10次)
   - [x] AbortController 請求取消管理
   - [x] 模擬 API 端點 (`/api/long-polling`)
+
+- [ ] **LongPollingMonoDemo 元件** ([`src/components/LongPollingMonoDemo.tsx`](src/components/LongPollingMonoDemo.tsx))
+  - [ ] 實作響應式長輪詢機制（對應 `/longPolling/mono` API）
+  - [ ] 處理連線超時與重連
+  - [ ] 顯示連線狀態 (連線中/已連線/錯誤/已停止)
+  - [ ] 錯誤處理和重試邏輯 (指數退避)
+  - [ ] AbortController 請求取消管理
+  - [ ] 效能指標追蹤
+  - [ ] 訊息列表顯示 (最新 20 條)
+  - [ ] 新增專屬 tab 於 UI
 
 - [x] **SSEDemo 元件** ([`src/components/SSEDemo.tsx`](src/components/SSEDemo.tsx))
   - [x] 使用 EventSource API
@@ -59,6 +69,7 @@
 - [x] **自定義 Hooks** (已整合在各元件中)
   - [x] `usePolling` - 輪詢邏輯封裝 (已整合在 PollingDemo 元件中)
   - [x] `useLongPolling` - 長輪詢邏輯 (已整合在 LongPollingDemo 元件中)
+  - [ ] `useLongPollingMono` - 響應式長輪詢邏輯 (需新增)
   - [x] `useSSE` - SSE 連線管理 (已整合在 SSEDemo 元件中)
   - [ ] `useWebSocket` - WebSocket 連線管理
   - [x] `usePerformanceMetrics` - 效能數據追蹤 (已整合在各元件中)
@@ -66,6 +77,7 @@
 - [x] **API 端點開發**
   - [x] `/api/polling` - 基本輪詢端點 (70% 機率返回新訊息)
   - [x] `/api/long-polling` - 長輪詢端點 (5-30秒超時，30% 機率提前返回)
+  - [ ] `/api/long-polling-mono` - 響應式長輪詢端點（對應 `/longPolling/mono`，需新增）
   - [x] `/api/sse` - SSE 串流端點 (多事件類型，心跳機制)
   - [ ] `/api/websocket` - WebSocket 端點 (或後端 WebSocket 伺服器)
 
@@ -84,7 +96,7 @@
   - [x] 成功/失敗視覺回饋
   - [x] 即時狀態指示燈 (WiFi 圖示、顏色變化)
   - [x] 滑入動畫效果 (slide-up)
-  - [x] 導航選單設計 (技術選擇按鈕)
+  - [x] 導航選單設計 (技術選擇按鈕，需新增 LongPollingMono 專屬 tab)
 
 - [x] **視覺設計改善**
   - [x] 統一配色方案 (藍色系 vs 紫色系)
@@ -116,55 +128,6 @@
   - [x] 即時資料更新
   - [x] 錯誤提示和重試進度
   - [x] 響應式界面設計
-
-## 🖥️ 後端 (Spring Boot) TODO
-
-### 🛠️ API 端點開發
-
-- [x] **Polling API**
-  - [x] `GET /api/polling/data` - 基本資料端點
-  - [x] 模擬資料變化
-  - [x] 請求記錄和統計
-
-- [x] **Long Polling API**
-  - [x] `GET /api/long-polling/data` - 長輪詢端點
-  - [x] 實作 DeferredResult 或 ResponseBodyEmitter
-  - [x] 超時處理機制
-
-- [x] **SSE API**
-  - [x] `GET /api/sse/stream` - SSE 資料串流
-  - [x] 使用 SseEmitter
-  - [x] 多客戶端連線管理
-  - [x] 心跳機制
-
-- [ ] **WebSocket 端點**
-  - [ ] WebSocket 配置設定
-  - [ ] 訊息廣播功能
-  - [ ] 使用者管理和認證
-  - [ ] 群組聊天支援
-
-### 📈 效能監控
-
-- [ ] **統計資料收集**
-  - [ ] 請求次數統計
-  - [ ] 回應時間記錄
-  - [ ] 連線數量監控
-  - [ ] 記憶體使用量追蹤
-
-- [ ] **監控端點**
-  - [ ] `GET /api/metrics` - 效能指標
-  - [ ] `GET /api/health` - 健康檢查
-  - [ ] WebSocket 連線狀態
-
-### 🔐 安全性
-
-- [ ] **CORS 配置**
-  - [ ] 開發環境設定
-  - [ ] 生產環境安全策略
-
-- [ ] **認證授權** (選用)
-  - [ ] JWT Token 驗證
-  - [ ] WebSocket 認證機制
 
 ## 🚀 部署和優化 TODO
 
@@ -215,7 +178,7 @@
   - [ ] E2E 測試 (Cypress)
 
 - [ ] **後端測試**
-  - [ ] API 單元測試
+  - [ ] API 單元測試（含 /long-polling/mono）
   - [ ] 整合測試
   - [ ] WebSocket 連線測試
 
@@ -253,6 +216,7 @@
 2. ✅ 後端 API 端點開發
 3. ✅ 基本的效能比較功能
 4. ⏳ WebSocketDemo 元件開發 (進行中)
+5. ⏳ LongPollingMonoDemo 元件與 API 開發（新增）
 
 ### Phase 2 (完善功能) - 🚧 進行中
 
@@ -278,5 +242,5 @@
 
 **預估完成時間**: 4-6 週 (視個人開發時間而定)
 **建議先完成**: Phase 1 → Phase 2 → Phase 3 → Phase 4
-**目前進度**: Phase 1 已完成 75%，正在進行 WebSocketDemo 開發
-**最後更新**: 2025年8月28日
+**目前進度**: Phase 1 已完成 75%，正在進行 WebSocketDemo 與 LongPollingMonoDemo 開發
+**最後更新**: 2025年9月7日
