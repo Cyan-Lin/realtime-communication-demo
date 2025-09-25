@@ -2,7 +2,7 @@ import { Message } from "@/types";
 
 export function createErrorMessage(content: string): Message {
   return {
-    id: Date.now().toString(),
+    id: crypto.randomUUID(),
     content,
     timestamp: Date.now(),
     type: "system" as const,

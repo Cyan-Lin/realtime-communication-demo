@@ -69,6 +69,10 @@ export default function SSEDemo() {
 
     return () => {
       closeSSEConnection();
+
+      if (isActive) {
+        stopBackendDataGeneration();
+      }
     };
   }, [isActive]);
 
@@ -82,7 +86,7 @@ export default function SSEDemo() {
 
     // 添加連線建立的訊息
     const connectingMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       content: "正在建立 SSE 連線...",
       timestamp: Date.now(),
       type: "system",
@@ -106,7 +110,7 @@ export default function SSEDemo() {
         }));
 
         const connectedMessage: Message = {
-          id: Date.now().toString(),
+          id: crypto.randomUUID(),
           content: `SSE 連線建立成功 (耗時: ${connectionTime}ms)`,
           timestamp: Date.now(),
           type: "system",
@@ -173,7 +177,7 @@ export default function SSEDemo() {
 
       // 根據後端 API 格式處理訊息
       const newMessage: Message = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         content: data.message,
         timestamp: data.timestamp || Date.now(),
         type: "notification", // 後端推送的都是通知類型
