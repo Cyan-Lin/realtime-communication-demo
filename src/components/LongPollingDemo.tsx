@@ -220,7 +220,7 @@ export default function LongPollingDemo() {
       if (isActive) {
         // 如果後端資料產生還沒啟動，先啟動它
         if (!isBackendDataActive) {
-          startBackendDataGeneration();
+          await startBackendDataGeneration();
         }
 
         setMetrics((prev) => ({ ...prev, connectionTime: Date.now() }));
@@ -352,13 +352,13 @@ export default function LongPollingDemo() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <MessageList 
-          messages={messages} 
+        <MessageList
+          messages={messages}
           emptyMessage="點擊開始按鈕建立長輪詢連線"
           emptySubMessage="請確認後端服務已在 http://localhost:8080 啟動"
         />
-        
-        <PerformanceMetricsPanel 
+
+        <PerformanceMetricsPanel
           metrics={metrics}
           isBackendDataActive={isBackendDataActive}
           additionalMetrics={
@@ -375,10 +375,10 @@ export default function LongPollingDemo() {
         />
       </div>
 
-      <InfoSection 
-        title="技術說明" 
-        bgColor="bg-purple-50" 
-        borderColor="border-purple-200" 
+      <InfoSection
+        title="技術說明"
+        bgColor="bg-purple-50"
+        borderColor="border-purple-200"
         textColor="text-purple-800"
       >
         <p>

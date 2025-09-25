@@ -35,6 +35,13 @@ export default function SSEDemo() {
     bandwidthUsage: 0,
   });
 
+  // 使用共用的後端資料產生 hook
+  const {
+    isBackendDataActive,
+    startBackendDataGeneration,
+    stopBackendDataGeneration,
+  } = useBackendDataGeneration();
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const startTimeRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -46,11 +53,19 @@ export default function SSEDemo() {
   }, [isActive]);
 
   useEffect(() => {
-    if (isActive) {
-      startSSEConnection();
-    } else {
-      closeSSEConnection();
-    }
+    const startSSE = async () => {
+      if (isActive) {
+        // 如果後端資料產生還沒啟動，先啟動它
+        if (!isBackendDataActive) {
+          await startBackendDataGeneration();
+        }
+        startSSEConnection();
+      } else {
+        closeSSEConnection();
+      }
+    };
+
+    startSSE();
 
     return () => {
       closeSSEConnection();
@@ -72,10 +87,12 @@ export default function SSEDemo() {
       timestamp: Date.now(),
       type: "system",
     };
-    setMessages((prev) => [...prev, connectingMessage].slice(-20));
+    setMessages((prev) => addMessageWithLimit(prev, connectingMessage, 20));
 
     try {
-      eventSourceRef.current = new EventSource("/api/sse");
+      // 嘗試使用後端 API，fallback 到 Next.js API
+      const sseEndpoint = "http://localhost:8080/sse";
+      eventSourceRef.current = new EventSource(sseEndpoint);
 
       eventSourceRef.current.onopen = (event) => {
         console.log("SSE 連線已開啟", event);
@@ -94,46 +111,20 @@ export default function SSEDemo() {
           timestamp: Date.now(),
           type: "system",
         };
-        setMessages((prev) => [...prev, connectedMessage].slice(-20));
+        setMessages((prev) => addMessageWithLimit(prev, connectedMessage, 20));
       };
 
-      // 處理一般訊息
+      // 處理後端推送的通知訊息
       eventSourceRef.current.onmessage = (event) => {
         handleSSEMessage(event, "message");
       };
-
-      // 處理特定事件類型
-      eventSourceRef.current.addEventListener("connection", (event) => {
-        handleSSEMessage(event, "connection");
-      });
-
-      eventSourceRef.current.addEventListener("system", (event) => {
-        handleSSEMessage(event, "system");
-      });
-
-      eventSourceRef.current.addEventListener("heartbeat", (event) => {
-        // 心跳不顯示訊息，只更新指標
-        setMetrics((prev) => ({
-          ...prev,
-          requestCount: prev.requestCount + 1,
-        }));
-      });
-
-      eventSourceRef.current.addEventListener("disconnect", (event) => {
-        handleSSEMessage(event, "disconnect");
-      });
 
       eventSourceRef.current.onerror = (event) => {
         console.error("SSE 錯誤", event);
         setConnectionStatus("error");
 
-        const errorMessage: Message = {
-          id: Date.now().toString(),
-          content: "SSE 連線發生錯誤",
-          timestamp: Date.now(),
-          type: "system",
-        };
-        setMessages((prev) => [...prev, errorMessage].slice(-20));
+        const errorMessage = createErrorMessage("SSE 連線發生錯誤");
+        setMessages((prev) => addMessageWithLimit(prev, errorMessage, 20));
 
         // 自動重連機制
         if (
@@ -149,13 +140,10 @@ export default function SSEDemo() {
             30000
           ); // 指數退避，最大30秒
 
-          const retryMessage: Message = {
-            id: Date.now().toString(),
-            content: `連線中斷，${retryDelay / 1000}秒後嘗試重連 (${nextAttempt}/${maxReconnectAttempts})`,
-            timestamp: Date.now(),
-            type: "system",
-          };
-          setMessages((prev) => [...prev, retryMessage].slice(-20));
+          const retryMessage = createErrorMessage(
+            `連線中斷，${retryDelay / 1000}秒後嘗試重連 (${nextAttempt}/${maxReconnectAttempts})`
+          );
+          setMessages((prev) => addMessageWithLimit(prev, retryMessage, 20));
 
           reconnectTimeoutRef.current = window.setTimeout(() => {
             if (isActiveRef.current) {
@@ -163,13 +151,10 @@ export default function SSEDemo() {
             }
           }, retryDelay);
         } else if (reconnectAttempts >= maxReconnectAttempts) {
-          const failedMessage: Message = {
-            id: Date.now().toString(),
-            content: `重連失敗，已達最大重試次數 (${maxReconnectAttempts})`,
-            timestamp: Date.now(),
-            type: "system",
-          };
-          setMessages((prev) => [...prev, failedMessage].slice(-20));
+          const failedMessage = createErrorMessage(
+            `重連失敗，已達最大重試次數 (${maxReconnectAttempts})`
+          );
+          setMessages((prev) => addMessageWithLimit(prev, failedMessage, 20));
           setIsActive(false);
         }
       };
@@ -177,13 +162,8 @@ export default function SSEDemo() {
       console.error("創建 EventSource 失敗:", error);
       setConnectionStatus("error");
 
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: "無法建立 SSE 連線",
-        timestamp: Date.now(),
-        type: "system",
-      };
-      setMessages((prev) => [...prev, errorMessage].slice(-20));
+      const errorMessage = createErrorMessage("無法建立 SSE 連線");
+      setMessages((prev) => addMessageWithLimit(prev, errorMessage, 20));
     }
   };
 
@@ -191,17 +171,15 @@ export default function SSEDemo() {
     try {
       const data = JSON.parse(event.data);
 
-      // 跳過心跳訊息的顯示
-      if (data.type === "heartbeat") return;
-
+      // 根據後端 API 格式處理訊息
       const newMessage: Message = {
         id: Date.now().toString(),
         content: data.message,
         timestamp: data.timestamp || Date.now(),
-        type: data.type === "system" ? "system" : "notification",
+        type: "notification", // 後端推送的都是通知類型
       };
 
-      setMessages((prev) => [...prev, newMessage].slice(-20));
+      setMessages((prev) => addMessageWithLimit(prev, newMessage, 20));
 
       // 更新效能指標
       const messageSize = new TextEncoder().encode(data.message).length;
@@ -217,13 +195,8 @@ export default function SSEDemo() {
     } catch (error) {
       console.error("SSE 訊息解析錯誤:", error);
 
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: `訊息解析錯誤: ${event.data}`,
-        timestamp: Date.now(),
-        type: "system",
-      };
-      setMessages((prev) => [...prev, errorMessage].slice(-20));
+      const errorMessage = createErrorMessage(`訊息解析錯誤: ${event.data}`);
+      setMessages((prev) => addMessageWithLimit(prev, errorMessage, 20));
     }
   };
 
@@ -242,7 +215,10 @@ export default function SSEDemo() {
     setReconnectAttempts(0);
   };
 
-  const reset = () => {
+  const reset = async () => {
+    // 停止後端資料產生
+    await stopBackendDataGeneration();
+
     setIsActive(false);
     closeSSEConnection();
     setMessages([]);
@@ -256,9 +232,11 @@ export default function SSEDemo() {
     });
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 B";
-    return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+  const toggleSSE = () => {
+    if (isActive) {
+      stopBackendDataGeneration();
+    }
+    setIsActive((prev) => !prev);
   };
 
   const getStatusColor = () => {
@@ -302,125 +280,45 @@ export default function SSEDemo() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Server-Sent Events (SSE) 示範
-        </h2>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setIsActive(!isActive)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-white font-medium ${
-              isActive
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-green-500 hover:bg-green-600"
-            }`}
-          >
-            {isActive ? <Pause size={16} /> : <Play size={16} />}
-            <span>{isActive ? "停止" : "開始"}</span>
-          </button>
-          <button
-            onClick={reset}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md font-medium"
-          >
-            <RotateCcw size={16} />
-            <span>重置</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 設定選項 */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-900 mb-3">連線設定</h3>
-        <div className="flex items-center space-x-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={autoReconnect}
-              onChange={(e) => setAutoReconnect(e.target.checked)}
-              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">自動重連</span>
-          </label>
-          <span className="text-sm text-gray-500">
-            最大重試: {maxReconnectAttempts} 次
-          </span>
-          {reconnectAttempts > 0 && (
-            <span className="text-sm text-orange-600">
-              已重試: {reconnectAttempts} 次
+      <DemoControls
+        title="Server-Sent Events (SSE) 示範"
+        isActive={isActive}
+        onToggle={toggleSSE}
+        onReset={reset}
+        additionalControls={
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={autoReconnect}
+                onChange={(e) => setAutoReconnect(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">自動重連</span>
+            </label>
+            <span className="text-sm text-gray-500">
+              最大重試: {maxReconnectAttempts} 次
             </span>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 訊息顯示 */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">即時訊息流</h3>
-            <div className="flex items-center space-x-2">
-              {getStatusIcon()}
-              <span className={`text-sm font-medium ${getStatusColor()}`}>
-                {getStatusText()}
+            {reconnectAttempts > 0 && (
+              <span className="text-sm text-orange-600">
+                已重試: {reconnectAttempts} 次
               </span>
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4 h-80 overflow-y-auto">
-            {messages.length === 0 ? (
-              <div className="text-gray-500 text-center py-8">
-                點擊開始按鈕建立 SSE 連線
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`p-3 rounded-lg shadow-sm animate-slide-up ${
-                      message.type === "system"
-                        ? "bg-blue-50 border-l-4 border-blue-400"
-                        : "bg-white"
-                    }`}
-                  >
-                    <div className="text-sm text-gray-900">
-                      {message.content}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* 效能指標 */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">效能指標</h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">接收訊息:</span>
-              <span className="font-medium">{metrics.requestCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">訊息資料:</span>
-              <span className="font-medium">
-                {formatBytes(metrics.dataReceived)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">總頻寬:</span>
-              <span className="font-medium">
-                {formatBytes(metrics.bandwidthUsage)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">連線時間:</span>
-              <span className="font-medium">
-                {metrics.connectionTime > 0
-                  ? `${metrics.connectionTime}ms`
-                  : "-"}
-              </span>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MessageList
+          messages={messages}
+          emptyMessage="點擊開始按鈕建立 SSE 連線"
+          emptySubMessage="伺服器會主動推送通知到客戶端"
+        />
+
+        <PerformanceMetricsPanel
+          metrics={metrics}
+          isBackendDataActive={isBackendDataActive}
+          additionalMetrics={
             <div className="flex justify-between items-center">
               <span className="text-gray-600">連線狀態:</span>
               <div className="flex items-center space-x-2">
@@ -430,25 +328,17 @@ export default function SSEDemo() {
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* 連線資訊 */}
-          <div className="bg-indigo-50 rounded-lg p-4">
-            <h4 className="font-medium text-indigo-900 mb-2">連線資訊</h4>
-            <div className="text-sm text-indigo-800 space-y-1">
-              <div>端點: /api/sse</div>
-              <div>協議: Server-Sent Events</div>
-              <div>編碼: UTF-8</div>
-              <div>重連機制: {autoReconnect ? "啟用" : "停用"}</div>
-            </div>
-          </div>
-        </div>
+          }
+        />
       </div>
 
-      {/* 技術說明 */}
-      <div className="mt-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <h4 className="font-medium text-orange-900 mb-2">技術說明</h4>
-        <p className="text-orange-800 text-sm">
+      <InfoSection
+        title="技術說明"
+        bgColor="bg-orange-50"
+        borderColor="border-orange-200"
+        textColor="text-orange-800"
+      >
+        <p>
           Server-Sent Events (SSE)
           是一種單向通訊技術，允許伺服器主動推送資料到客戶端。 相比輪詢，SSE
           提供更即時的資料推送，具有自動重連機制，但只支援從伺服器到客戶端的單向通訊。
@@ -458,7 +348,16 @@ export default function SSEDemo() {
           <strong>特點:</strong> 基於 HTTP/1.1 持久連線 | 自動重連 | 事件驅動 |
           輕量級協議
         </div>
-      </div>
+      </InfoSection>
+
+      <InfoSection title="後端整合說明">
+        <p>
+          <br />• 使用 Server-Sent Events 與後端建立持久連線
+          <br />• 伺服器主動推送通知，無需客戶端輪詢
+          <br />• 支援自動重連機制，最多重試 {maxReconnectAttempts} 次
+          <br />• 確保後端 Docker 容器在 localhost:8080 上運行
+        </p>
+      </InfoSection>
     </div>
   );
 }

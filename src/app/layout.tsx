@@ -1,18 +1,20 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: '即時通訊技術比較 - Polling vs Long Polling vs SSE vs WebSocket',
-  description: '實作並比較輪詢、長輪詢、Server-Sent Events 和 WebSocket 等即時通訊技術',
-}
+  title:
+    "即時通訊技術比較 - Polling vs Long Polling vs Reactive Long Polling vs SSE vs WebSocket",
+  description:
+    "實作並比較輪詢、長輪詢、響應式長輪詢、Server-Sent Events 和 WebSocket 等即時通訊技術",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="zh-TW">
@@ -27,7 +29,7 @@ export default function RootLayout({
                   </h1>
                 </div>
                 <div className="text-sm text-gray-500">
-                  Polling • Long Polling • SSE • WebSocket
+                  Polling • Long Polling • Reactive • SSE • WebSocket
                 </div>
               </div>
             </div>
@@ -38,5 +40,5 @@ export default function RootLayout({
         </div>
       </body>
     </html>
-  )
+  );
 }

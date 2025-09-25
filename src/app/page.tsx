@@ -4,7 +4,7 @@ import { useState } from "react";
 import PollingDemo from "@/components/PollingDemo";
 import LongPollingDemo from "@/components/LongPollingDemo";
 import SSEDemo from "@/components/SSEDemo";
-// import WebSocketDemo from "@/components/WebSocketDemo";
+import WebSocketDemo from "@/components/WebSocketDemo";
 // import ComparisonChart from "@/components/ComparisonChart";
 
 type DemoType = "polling" | "longPolling" | "sse" | "websocket" | "comparison";
@@ -40,8 +40,8 @@ export default function Home() {
         return <LongPollingDemo />;
       case "sse":
         return <SSEDemo />;
-      // case "websocket":
-      //   return <WebSocketDemo />;
+      case "websocket":
+        return <WebSocketDemo />;
       // case "comparison":
       //   return <ComparisonChart />;
       default:
@@ -56,7 +56,7 @@ export default function Home() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           選擇要體驗的技術
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           {demos.map((demo) => (
             <button
               key={demo.id}

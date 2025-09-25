@@ -2,7 +2,7 @@
 
 ## 🎯 專案概覽
 
-這是一個比較五種即時通訊技術（Polling、Long Polling、SSE、WebSocket、Reactive Long Polling）的教學示範專案，使用 Next.js 前端搭配 Spring Boot 後端。
+這是一個比較四種即時通訊技術（Polling、Long Polling、SSE、WebSocket）的教學示範專案，使用 Next.js 前端搭配 Spring Boot 後端。
 
 ## 📋 前端 (Next.js) TODO
 
@@ -26,26 +26,17 @@
   - [x] AbortController 請求取消管理
   - [x] 模擬 API 端點 (`/api/long-polling`)
 
-- [ ] **LongPollingMonoDemo 元件** ([`src/components/LongPollingMonoDemo.tsx`](src/components/LongPollingMonoDemo.tsx))
-  - [ ] 實作響應式長輪詢機制（對應 `/longPolling/mono` API）
-  - [ ] 處理連線超時與重連
-  - [ ] 顯示連線狀態 (連線中/已連線/錯誤/已停止)
-  - [ ] 錯誤處理和重試邏輯 (指數退避)
-  - [ ] AbortController 請求取消管理
-  - [ ] 效能指標追蹤
-  - [ ] 訊息列表顯示 (最新 20 條)
-  - [ ] 新增專屬 tab 於 UI
-
-- [x] **SSEDemo 元件** ([`src/components/SSEDemo.tsx`](src/components/SSEDemo.tsx))
+- [x] **SSEDemo 元件** ([`src/components/SSEDemo.tsx`](src/components/SSEDemo.tsx)) ✅ **已整合後端 API**
   - [x] 使用 EventSource API
   - [x] 處理連線狀態 (connecting, open, closed)
   - [x] 顯示即時訊息流
   - [x] 連線重建機制 (自動重連開關)
-  - [x] 多事件類型處理 (message, system, heartbeat, connection, disconnect)
-  - [x] 心跳機制 (30秒間隔)
-  - [x] 智能訊息過濾 (心跳不顯示)
   - [x] 效能監控 (接收計數、資料大小、頻寬)
-  - [x] 模擬 API 端點 (`/api/sse`)
+  - [x] **後端整合**: 直接連接 `http://localhost:8080/sse`
+  - [x] **統一架構**: 使用共用元件 (DemoControls, MessageList, PerformanceMetricsPanel)
+  - [x] **後端資料管理**: 整合 useBackendDataGeneration hook
+  - [x] 智能重連機制 (指數退避，最多 5 次重試)
+  - [x] 記憶體管理和資源清理
 
 - [ ] **WebSocketDemo 元件** ([`src/components/WebSocketDemo.tsx`](src/components/WebSocketDemo.tsx))
   - [ ] WebSocket 連線建立和管理
@@ -66,19 +57,25 @@
 
 ### 📊 資料管理
 
+- [x] **共用元件架構** ✅ **新增**
+  - [x] `DemoControls` - 統一的控制面板元件
+  - [x] `MessageList` - 統一的訊息顯示列表
+  - [x] `PerformanceMetricsPanel` - 統一的效能指標面板
+  - [x] `InfoSection` - 統一的技術說明區塊
+  - [x] `useBackendDataGeneration` - 後端資料產生管理 hook
+
 - [x] **自定義 Hooks** (已整合在各元件中)
   - [x] `usePolling` - 輪詢邏輯封裝 (已整合在 PollingDemo 元件中)
   - [x] `useLongPolling` - 長輪詢邏輯 (已整合在 LongPollingDemo 元件中)
-  - [ ] `useLongPollingMono` - 響應式長輪詢邏輯 (需新增)
   - [x] `useSSE` - SSE 連線管理 (已整合在 SSEDemo 元件中)
   - [ ] `useWebSocket` - WebSocket 連線管理
   - [x] `usePerformanceMetrics` - 效能數據追蹤 (已整合在各元件中)
 
-- [x] **API 端點開發**
-  - [x] `/api/polling` - 基本輪詢端點 (70% 機率返回新訊息)
-  - [x] `/api/long-polling` - 長輪詢端點 (5-30秒超時，30% 機率提前返回)
-  - [ ] `/api/long-polling-mono` - 響應式長輪詢端點（對應 `/longPolling/mono`，需新增）
-  - [x] `/api/sse` - SSE 串流端點 (多事件類型，心跳機制)
+- [x] **API 端點開發** ✅ **後端整合完成**
+  - [x] `/api/polling` - 基本輪詢端點 (舊版，供參考)
+  - [x] `/api/long-polling` - 長輪詢端點 (舊版，供參考)
+  - [x] `/api/sse` - SSE 串流端點 (舊版，供參考)
+  - [x] **後端 Spring Boot API**: 直接使用 `http://localhost:8080/*` 端點
   - [ ] `/api/websocket` - WebSocket 端點 (或後端 WebSocket 伺服器)
 
 ### 🎨 UI/UX 改善
@@ -96,7 +93,7 @@
   - [x] 成功/失敗視覺回饋
   - [x] 即時狀態指示燈 (WiFi 圖示、顏色變化)
   - [x] 滑入動畫效果 (slide-up)
-  - [x] 導航選單設計 (技術選擇按鈕，需新增 LongPollingMono 專屬 tab)
+  - [x] 導航選單設計 (技術選擇按鈕)
 
 - [x] **視覺設計改善**
   - [x] 統一配色方案 (藍色系 vs 紫色系)
@@ -106,6 +103,14 @@
   - [x] 字體大小和間距優化
 
 ### 🔧 工具功能
+
+- [x] **共用元件重構** ✅ **新完成**
+  - [x] 統一所有 Demo 元件使用相同的 UI 架構
+  - [x] DemoControls 元件 - 統一控制面板
+  - [x] MessageList 元件 - 統一訊息顯示
+  - [x] PerformanceMetricsPanel 元件 - 統一效能指標
+  - [x] InfoSection 元件 - 統一技術說明
+  - [x] 後端資料產生統一管理 (useBackendDataGeneration hook)
 
 - [x] **控制面板功能**
   - [x] 輪詢間隔調整 (1s, 3s, 5s, 10s)
@@ -210,13 +215,13 @@
 
 ### 📅 優先順序建議
 
-### Phase 1 (核心功能) - ✅ 75% 完成
+### Phase 1 (核心功能) - ✅ 85% 完成
 
 1. ✅ 基本元件實作 (PollingDemo, LongPollingDemo, SSEDemo)
-2. ✅ 後端 API 端點開發
+2. ✅ 後端 API 端點開發和整合 (SSE 已整合後端)
 3. ✅ 基本的效能比較功能
-4. ⏳ WebSocketDemo 元件開發 (進行中)
-5. ⏳ LongPollingMonoDemo 元件與 API 開發（新增）
+4. ✅ 共用元件架構建立 (DemoControls, MessageList, PerformanceMetricsPanel, InfoSection)
+5. ⏳ WebSocketDemo 元件開發 (進行中)
 
 ### Phase 2 (完善功能) - 🚧 進行中
 
@@ -242,5 +247,5 @@
 
 **預估完成時間**: 4-6 週 (視個人開發時間而定)
 **建議先完成**: Phase 1 → Phase 2 → Phase 3 → Phase 4
-**目前進度**: Phase 1 已完成 75%，正在進行 WebSocketDemo 與 LongPollingMonoDemo 開發
-**最後更新**: 2025年9月7日
+**目前進度**: Phase 1 已完成 85%，SSE 已整合後端 API 並採用共用元件架構，正在進行 WebSocketDemo 開發
+**最後更新**: 2025年9月25日

@@ -111,7 +111,7 @@ export default function PollingDemo() {
         // 如果後端資料產生還沒啟動，先啟動它
         if (!isBackendDataActive) {
           try {
-            startBackendDataGeneration();
+            await startBackendDataGeneration();
             // 設定初始時間戳為當前時間
             const currentTime = Date.now();
             lastTimestampRef.current = currentTime;

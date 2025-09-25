@@ -83,20 +83,29 @@
 
 ### ✅ 3. Server-Sent Events (SSE) 示範
 
-**位置**: `src/components/SSEDemo.tsx` + `src/app/api/sse/route.ts`
+**位置**: `src/components/SSEDemo.tsx` + 後端 `http://localhost:8080/sse`
 
 **功能特色**:
 
+- **後端整合**: 直接連接 Spring Boot 後端 (http://localhost:8080/sse)
+- **共用元件架構**: 使用統一的 DemoControls、MessageList、PerformanceMetricsPanel
+- **後端資料管理**: 整合 useBackendDataGeneration hook 管理資料產生
 - **EventSource 連線管理**: 使用標準 EventSource API 建立持久連線
-- **多事件類型處理**:
-  - `connection` 事件: 連線建立通知
-  - `message` 事件: 一般訊息推送 (70% 機率，2-3秒間隔)
-  - `system` 事件: 系統資訊推送 (20% 機率，5秒間隔)
-  - `heartbeat` 事件: 心跳保持連線 (30秒間隔)
-  - `disconnect` 事件: 連線關閉通知
 - **智能重連系統**:
   - 自動重連開關 (可關閉)
   - 最大重試次數限制 (5次)
+  - 指數退避算法 (1s → 2s → 4s → 8s → 16s → 30s)
+  - 重連進度顯示
+- **連線狀態管理**:
+  - 連線中 (黃色, 旋轉動畫) / 已連線 (綠色, 脈衝動畫)
+  - 錯誤 (紅色) / 已停止 (灰色)
+  - 豐富的視覺狀態指示器
+- **效能監控**:
+  - 接收訊息計數
+  - 訊息資料大小統計
+  - 總頻寬使用量
+  - 連線建立時間測量
+  - 後端資料產生狀態追蹤
   - 指數退避算法 (1s → 2s → 4s → 8s → 16s → 30s)
   - 重連進度顯示
 - **連線狀態管理**:
@@ -112,10 +121,13 @@
 
 **技術亮點**:
 
-- 完整的 EventSource 生命週期管理
-- 智能的訊息過濾 (心跳不顯示在 UI)
-- 記憶體管理 (限制最多 20 條訊息)
-- 防止多重連線的資源競爭
+- **後端 API 整合**: 直接使用 Spring Boot 提供的 SSE 端點
+- **統一架構**: 採用共用元件設計，與其他 Demo 保持一致
+- **資源管理**: 整合後端資料產生控制，自動啟動/停止資料流
+- **完整的 EventSource 生命週期管理**
+- **記憶體管理**: 限制最多 20 條訊息
+- **防止多重連線的資源競爭**
+- **智能錯誤處理和使用者友善提示**
 
 ### 🎨 UI/UX 設計
 
@@ -195,9 +207,18 @@ interface PerformanceMetrics {
 
 **API 路由結構**:
 
-- `/api/polling` - 基本輪詢端點
-- `/api/long-polling` - 長輪詢端點
-- `/api/sse` - Server-Sent Events 串流端點
+- `/api/polling` - 基本輪詢端點 (舊版，供參考)
+- `/api/long-polling` - 長輪詢端點 (舊版，供參考)
+- `/api/sse` - Server-Sent Events 串流端點 (舊版，供參考)
+- **後端整合**: 直接使用 `http://localhost:8080/*` 端點
+
+**共用元件系統**:
+
+- `DemoControls` - 統一的控制面板 (開始/停止、重置、額外設定)
+- `MessageList` - 統一的訊息顯示列表
+- `PerformanceMetricsPanel` - 統一的效能指標面板
+- `InfoSection` - 統一的技術說明區塊
+- `useBackendDataGeneration` - 後端資料產生管理 hook
 
 ## 🚧 進行中功能
 
@@ -400,6 +421,6 @@ src/
 ---
 
 **開發者**: Cyan-Lin  
-**最後更新**: 2025年8月28日  
-**版本**: v0.4.0 (Phase 1 已完成 75% - 三大核心技術已實作完成)
+**最後更新**: 2025年9月25日  
+**版本**: v0.5.0 (Phase 1 已完成 75% - 三大核心技術已實作完成，SSE 已整合後端 API)
 **下一步**: WebSocketDemo 元件開發，ComparisonChart 圖表實作

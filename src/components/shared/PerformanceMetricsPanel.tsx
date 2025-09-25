@@ -39,10 +39,10 @@ export default function PerformanceMetricsPanel({
             {formatBytes(metrics.bandwidthUsage)}
           </span>
         </div>
-        
+
         {/* 插入額外的指標 */}
         {additionalMetrics}
-        
+
         <div className="flex justify-between">
           <span className="text-gray-600">後端狀態:</span>
           <span
